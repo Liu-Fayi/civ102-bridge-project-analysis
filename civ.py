@@ -70,17 +70,20 @@ def graphing():
 
 def geography():
     
-    V = 300.2723333333333 #Length is 1260mm
+    
+    #Setting up shear force,
+    #I used max force for this one
+    V = 300.2723333333333 # This value is obtained when  length is 1260mm
     M = 77199.71466666664 
+    
+    #Location of each cross section:
     y_bot, y_top, I, Qcent, Qglue, b, height = section_properties_left()
     
-    print(height)
+    
     
     #Stress part calculation
     bridge_shear = V * Qcent/ I / b
     glue_sheer = V * Qglue / I / b
-    
-    print(f"I: {I}")
     max_bridge_shear = np.amax(bridge_shear)
     max_glue_shear = np.amax(glue_sheer)
     compressions = M * y_top / I
@@ -88,28 +91,38 @@ def geography():
     max_compression = np.amax(compressions)
     max_tension = np.amax(tensions)
 
-    print(f"Max Bridge Shear: {max_bridge_shear} Max Glue Shear: {max_glue_shear} Max Compression: {max_compression} Max tension: {max_tension}")
-    diaphragm = [130, 300, 300, 130]
-    plate_buckling(y_top, diaphragm, height) 
+    error_val = 0.5
+    for top, bot in zip(y_top, y_bot):
+        print(f"Top: {top}, Bot: {bot}")
+        print(f"Ratio : {round(bot / top, 4)}")
+        if bot / top > 5 + error_val:
+            print("The botttom is too long or top is too short")
+        elif bot / top < 5 - error_val:   
+            print("The botttom is too short or top is too long")
+        else:
+            print("It is in good range")
+        print()
+    print("-----------------------------------")
+    print(f"Max Bridge Shear: {round(max_bridge_shear , 4)} Max Glue Shear: {round(max_glue_shear, 4)} \nMax Compression: {round(max_compression, 4)} Max tension: {round(max_tension, 4)}")
+    print("-----------------------------------")
+    plate_buckling(y_top, height) 
     
 #Take k t(thickness) and b to calculat the sigma_crit
 def calculate_sigma(k, t, b):
     return k * math.pi ** 2 * E / (12 * (1 - mu**2)) * (t/b) ** 2
 
-def plate_buckling(y_top, a, height):
+def plate_buckling(y_top, height):
     
     sigma_crit = []
+    #Location of cross section
     x = [20, 100, 180, 280]
-    #Do the very first of bridge
-    #Case 2 k = 6
-    k = 0.425
-    t = 1.27 * 2 #thickness
+    #Location of diagphram
+    a = [130, 300, 300, 130]
 
 
-    sigma = calculate_sigma(k, t, x[0])
-    sigma_crit.append(sigma)
-    
-    #Case 1 k = 4
+
+
+    #Case 1  k = 4
     k = 4
     t = 1.27 * 2 #thickness
 
@@ -117,28 +130,49 @@ def plate_buckling(y_top, a, height):
         b = x[i] - x[i-1]
         sigma = calculate_sigma(k, t, b)
         sigma_crit.append(sigma)
-        
+
+    print("Sigma Crit for Case1: ")
+    for sig in sigma_crit:
+        print(round(sig, 4), end = " ")
+    print()
+    if not(all(sig >= 6 for sig in sigma_crit)):
+        print("Case 1 Fails. The bridge is under thin plate buckling")
+    print()   
+    #Case 2 k = 0.425
     k = 0.425
+    t = 1.27 * 2 #thickness
+
+    sigma = calculate_sigma(k, t, x[0])
+    sigma_crit.append(sigma)
+        
     sigma = calculate_sigma(k, t, Length - x[-1])
     sigma_crit.append(sigma)
     
-    print(sigma_crit)
+    print("Sigma Crit for Case2: ")
+    for sig in sigma_crit:
+        print(round(sig, 4), end = " ")
+    print()
+    if not(all(sig >= 6 for sig in sigma_crit)):
+        print("Case 2 Fails. The bridge is under thin plate buckling")  
+    print()
     sigma_crit.clear()
-    
+
     #Case 3 k =6
     k = 6
     t = 1.27
-    
-    
-    print(y_top)
+        
     for b in y_top:
         sigma = calculate_sigma(k, t, b)
         sigma_crit.append(sigma)
     
-    print(sigma_crit)
-    sigma_crit.clear()
-    
-    
+    print("Sigma Crit for Case3: ")
+    for sig in sigma_crit:
+        print(round(sig, 4), end = " ")
+    print()
+    if not(all(sig >= 6 for sig in sigma_crit)):
+        print("Case 3 Fails. The bridge is under thin plate buckling")  
+    print()
+    sigma_crit.clear()    
     #Case 4 
     k = 5
     t = 1.27
@@ -146,14 +180,15 @@ def plate_buckling(y_top, a, height):
     for a, h in zip(a, height):
         sigma = calculate_sigma(k, t, a) + calculate_sigma(k, t, h)
         sigma_crit.append(sigma)
-    print(sigma_crit)
-    sigma_crit.clear()
-    
-    
+        
 
-    #Case 1 
-    
-    
+    print("Sigma Crit for Case 4: ")
+    for sig in sigma_crit:
+        print(sig, end = " ")
+    print()
+    if not(all(sig >= 6 for sig in sigma_crit)):
+        print("Case 4 Fails. The bridge is under thin plate buckling")  
+    sigma_crit.clear()
     
 
 
@@ -170,8 +205,6 @@ def section_properties_left():
     #gtb = np.array([10, 10, 10, 10, 10, 10])  # Glue Tab Width
     #gtt = np.array([1.27, 1.27, 1.27, 1.27, 1.27, 1.27])  # Glue Tab Thickness
     #a = np.array([30, 30, 260, 260, 160, 160])  # Diaphragm Spacing
-    
-    x = np.array([100, 500, 700, 1100])
     
     tfb = np.array([120])
     tfb = np.repeat(tfb, 4)
@@ -198,7 +231,7 @@ def section_properties_left():
     gtt = np.repeat(gtt, 4)
         
     b = wt * 2
-    n = len(x)
+    n = len(tfb)
     ovheight = tft + wh + bft  # Total height along beam
 
     # Initialize arrays for area (A)
@@ -272,4 +305,6 @@ def section_properties_left():
 
 
 if __name__ == '__main__':
+    print("-----------------------------------")
     geography()
+    print("-----------------------------------")
