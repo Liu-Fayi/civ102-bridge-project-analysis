@@ -352,15 +352,31 @@ def total_cross_section_calc(L, G_heights_top):
     y_bar = [0] * len(L)
     y_top = [0] * len(L)
     Q_cent = [0] * len(L)
-    Q_glue = [] * len(L)
+    Q_glue = [None] * len(L)
     b_cent = [0] * len(L)
     ovheight = [0] * len(L)
     for i in range(len(L)):
         y_bar[i], y_top[i], I[i], Q_cent[i], Q_glue[i], b_cent[i], ovheight[i] = single_cross_section_calc(L[i], G_heights_top)
+    return y_bar, y_top, I, Q_cent, Q_glue, b_cent, ovheight
 
 
 if __name__ == '__main__':
     # print("-----------------------------------")
     # geography()
     # print("-----------------------------------")
-    
+    L = [None] * 1250
+    for l in range(25):
+        L[l] = [[0, 0, 100, 1.27], [10, 1.27, 1.27, 200], [90 - 1.27, 1.27, 1.27, 200]]
+    for l in range(25, 100):
+        L[l] = [[0, 0, 100, 1.27], [10, 1.27, 1.27, -0.2917 * l + 207.2917], [90 - 1.27, 1.27, 1.27, -0.2917 * l + 207.2917]]
+    for l in range(100, 625):
+        L[l] = [[0, 0, 100, 1.27], [10, 1.27, 1.27, -0.2917 * l + 207.2917], [90 - 1.27, 1.27, 1.27, -0.2917 * l + 207.2917], [50 - 1.27 / 2, 1.27, 1.27, 0.9524 * l - 95.2381]]
+    for l in range(625, 1150):
+        L[l] = [[0, 0, 100, 1.27], [10, 1.27, 1.27, 0.2917 * l - 157.2917], [90 - 1.27, 1.27, 1.27, 0.2917 * l - 157.2917], [50 - 1.27 / 2, 1.27, 1.27, -0.9524 * l + 1095.24]]
+    for l in range(1150, 1225):
+        L[l] = [[0, 0, 100, 1.27], [10, 1.27, 1.27, 0.2917 * l - 157.2917], [90 - 1.27, 1.27, 1.27, 0.2917 * l - 157.2917]]
+    for l in range(1225, 1250):
+        L[l] = [[0, 0, 100, 1.27], [10, 1.27, 1.27, 200], [90 - 1.27, 1.27, 1.27, 200]]
+    print(L)
+    dim = total_cross_section_calc(L, [1.27])
+    print(dim)
