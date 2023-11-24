@@ -301,10 +301,66 @@ def section_properties_left():
 
     return ybot, ytop, I, Qcent, Qglue, b, ovheight  #y_Top is compression y_bottom tension, 
 
+def single_cross_section_calc(L, G_heights_top):
+    '''input: L is a list of lists of all rectangular cross-section members (which varies over the
+            length of the bridge) of the bridge
+            the inner lists describe each member as [x, y, width, height]
+            x and y are the coordinates of the top left corner of the rectangle (all in mm)'''
 
+    y_bar = 0
+    I = 0
+    y_top = 0
+    Q_cent = 0
+    Q_glue = [0] * len(G_heights_top)
+    b_cent = 0
+    ovheight = 0
+    for member in L:
+        if member[1] + member[3] > ovheight:
+            ovheight = member[1] + member[3]
+    A = 0
+    hA = 0
+    for member in L:
+        A += member[2] * member[3]
+        hA += member[2] * member[3] * (ovheight - (member[1] + member[3]/2))
+    y_bar = hA / A
+    y_top = ovheight - y_bar
+
+    for member in L:
+        I += member[2] * member[3]**3 / 12 + member[2] * member[3] * (ovheight - (member[1] + member[3]/2) - y_bar)**2
+
+        if member[1] + member[3] < y_top:
+            Q_cent += member[2] * member[3] * (y_top - member[1] + member[3]/2)
+        elif member[1] < y_top:
+            Q_cent += member[2] * (y_top - member[1]) * ((y_top - member[1])/2)
+
+        if member[1] + member[3] > y_top and member[1] < y_top:
+            b_cent += member[2]
+
+        for i in range(len(G_heights_top)):
+            if member[1] + member[3] <= G_heights_top[i]:
+                Q_glue[i] += member[2] * member[3] * (y_top - (member[1] + member[3] / 2))
+
+
+    return y_bar, y_top, I, Q_cent, Q_glue, b_cent, ovheight
+
+def total_cross_section_calc(L, G_heights_top):
+    '''input: L is a list of lists of all cross_section list of rectangular cross-section members
+            (which varies over the length of the bridge) of the bridge
+            the inner lists describe each member as [x, y, width, height]
+            x and y are the coordinates of the top left corner of the rectangle (all in mm)'''
+    I = [0] * len(L)
+    y_bar = [0] * len(L)
+    y_top = [0] * len(L)
+    Q_cent = [0] * len(L)
+    Q_glue = [] * len(L)
+    b_cent = [0] * len(L)
+    ovheight = [0] * len(L)
+    for i in range(len(L)):
+        y_bar[i], y_top[i], I[i], Q_cent[i], Q_glue[i], b_cent[i], ovheight[i] = single_cross_section_calc(L[i], G_heights_top)
 
 
 if __name__ == '__main__':
-    print("-----------------------------------")
-    geography()
-    print("-----------------------------------")
+    # print("-----------------------------------")
+    # geography()
+    # print("-----------------------------------")
+    
