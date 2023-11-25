@@ -380,10 +380,10 @@ def stress_demand_calc(L, s_t=30, s_c=6, t=4):
 
 def stress_buckling_crit_calc(L):
     '''input: L is a list of measurements in the form of [open_flange_width, closed_flange_width, y_top, web_height, diaphragm_spacing]'''
-    closed_flange_crit = 0
-    open_flange_crit = 0
-    web_crit = 0
-    shear_crit = 0
+    closed_flange_crit = 4 * math.pi ** 2 * E / (12 * (1 - mu ** 2)) * (1.27 / L[1]) ** 2
+    open_flange_crit = 0.425 * math.pi ** 2 * E / (12 * (1 - mu ** 2)) * (1.27 / L[0]) ** 2
+    web_crit = 6 * math.pi ** 2 * E / (12 * (1 - mu ** 2)) * (1.27 / L[2]) ** 2
+    shear_crit = 5 * math.pi ** 2 * E / (12 * (1 - mu ** 2)) * (((1.27 / L[3]) ** 2) + ((1.27 / L[4]) ** 2))
     return closed_flange_crit, open_flange_crit, web_crit, shear_crit
 
 
@@ -411,6 +411,9 @@ if __name__ == '__main__':
         L[l] = [[0, 0, 100, 1.27], [10, 1.27, 1.27, 200], [90 - 1.27, 1.27, 1.27, 200]]
     print("calculating geometric properties")
     dim = total_cross_section_calc(L, [1.27])
+    print("calculating critical buckling stresses")
+    buckling_crit = stress_buckling_crit_calc([10, 80 - 1.27 * 2, max(dim[1]), 500, 300])
+    print(buckling_crit)
     print("calculating stress demands")
     stress_demand_max = stress_demand_calc(dim)
     num = 1
