@@ -312,6 +312,9 @@ def single_cross_section_calc(L, G_heights_top):
     y_top = 0
     Q_cent = 0
     Q_glue = [0] * len(G_heights_top)
+    b_glue = [0] * len(G_heights_top)
+    b_glue_top = [0] * len(G_heights_top)
+    b_glue_bot = [0] * len(G_heights_top)
     b_cent = 0
     ovheight = 0
     for member in L:
@@ -339,9 +342,16 @@ def single_cross_section_calc(L, G_heights_top):
         for i in range(len(G_heights_top)):
             if member[1] + member[3] <= G_heights_top[i]:
                 Q_glue[i] += member[2] * member[3] * (y_top - (member[1] + member[3] / 2))
+            if member[1] == G_heights_top[i]:
+                b_glue_bot[i] += member[2]
+            elif member[1] + member[3] == G_heights_top[i]:
+                b_glue_top[i] += member[2]
+
+    for i in range(len(G_heights_top)):
+        b_glue[i] = min(b_glue_top[i], b_glue_bot[i])
 
 
-    return y_bar, y_top, I, Q_cent, Q_glue, b_cent, ovheight
+    return y_bar, y_top, I, Q_cent, Q_glue, b_cent, ovheight, b_glue
 
 def total_cross_section_calc(L, G_heights_top):
     '''input: L is a list of lists of all cross_section list of rectangular cross-section members
@@ -355,9 +365,33 @@ def total_cross_section_calc(L, G_heights_top):
     Q_glue = [None] * len(L)
     b_cent = [0] * len(L)
     ovheight = [0] * len(L)
+    b_glue = [None] * len(L)
     for i in range(len(L)):
-        y_bar[i], y_top[i], I[i], Q_cent[i], Q_glue[i], b_cent[i], ovheight[i] = single_cross_section_calc(L[i], G_heights_top)
-    return y_bar, y_top, I, Q_cent, Q_glue, b_cent, ovheight
+        y_bar[i], y_top[i], I[i], Q_cent[i], Q_glue[i], b_cent[i], ovheight[i], b_glue[i] = single_cross_section_calc(L[i], G_heights_top)
+    return y_bar, y_top, I, Q_cent, Q_glue, b_cent, ovheight, b_glue
+
+def stress_demand_calc(L):
+    '''input: L is a list of lists of all cross_section properties as outputed by total_cross_section_calc'''
+    M_t_allow = [0] * len(L[0])
+    M_c_allow = [0] * len(L[0])
+    V_allow = [0] * len(L[0])
+    V_glue_allow = []
+    for i in range(len(L[0])):
+        M_t_allow[i] = 30 * L[2][i] / L[0][i]
+        M_c_allow[i] = 6 * L[2][i] / L[1][i]
+        V_allow[i] = 4 * L[2][i] * L[5][i] / L[3][i]
+        for j in range(len(L[4][i])):
+            V_glue_allow.append(2 * L[2][i] * L[7][i][j] / L[4][i][j])
+
+    return M_t_allow, M_c_allow, V_allow, V_glue_allow
+
+def stress_buckling_crit_calc(L):
+    '''input: L is a list of measurements in the form of [open_flange_width, closed_flange_width, y_top, web_height, diaphragm_spacing]'''
+    closed_flange_crit = 0
+    open_flange_crit = 0
+    web_crit = 0
+    shear_crit = 0
+    return closed_flange_crit, open_flange_crit, web_crit, shear_crit
 
 
 if __name__ == '__main__':
@@ -365,6 +399,7 @@ if __name__ == '__main__':
     # geography()
     # print("-----------------------------------")
     L = [None] * 1250
+    print("defining shapes")
     for l in range(25):
         L[l] = [[0, 0, 100, 1.27], [10, 1.27, 1.27, 200], [90 - 1.27, 1.27, 1.27, 200]]
     for l in range(25, 100):
@@ -377,6 +412,13 @@ if __name__ == '__main__':
         L[l] = [[0, 0, 100, 1.27], [10, 1.27, 1.27, 0.2917 * l - 157.2917], [90 - 1.27, 1.27, 1.27, 0.2917 * l - 157.2917]]
     for l in range(1225, 1250):
         L[l] = [[0, 0, 100, 1.27], [10, 1.27, 1.27, 200], [90 - 1.27, 1.27, 1.27, 200]]
-    print(L)
+    print("calculating geometric properties")
     dim = total_cross_section_calc(L, [1.27])
-    print(dim)
+    print("calculating stress demands")
+    stress_demand_max = stress_demand_calc(dim)
+    num = 1
+    for i in stress_demand_max:
+        plt.plot(range(1250), i)
+        plt.ylabel(num)
+        plt.show()
+        num += 1
