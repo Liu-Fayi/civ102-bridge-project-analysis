@@ -378,12 +378,11 @@ def stress_demand_calc(L, s_t=30, s_c=6, t=4):
     return M_t_allow, M_c_allow, V_allow, V_glue_allow
 
 
-def stress_buckling_crit_calc(L):
-    '''input: L is a list of measurements in the form of [open_flange_width, closed_flange_width, y_top, web_height, diaphragm_spacing]'''
-    closed_flange_crit = 4 * math.pi ** 2 * E / (12 * (1 - mu ** 2)) * (1.27 / L[1]) ** 2
-    open_flange_crit = 0.425 * math.pi ** 2 * E / (12 * (1 - mu ** 2)) * (1.27 / L[0]) ** 2
-    web_crit = 6 * math.pi ** 2 * E / (12 * (1 - mu ** 2)) * (1.27 / L[2]) ** 2
-    shear_crit = 5 * math.pi ** 2 * E / (12 * (1 - mu ** 2)) * (((1.27 / L[3]) ** 2) + ((1.27 / L[4]) ** 2))
+def stress_buckling_crit_calc(open_flange_width, closed_flange_width, y_top, web_height, diaphragm_spacing, horizontal_height = 1.27, vertical_thickness = 1.27):
+    closed_flange_crit = 4 * math.pi ** 2 * E / (12 * (1 - mu ** 2)) * (horizontal_height / closed_flange_width) ** 2
+    open_flange_crit = 0.425 * math.pi ** 2 * E / (12 * (1 - mu ** 2)) * (horizontal_height / open_flange_width) ** 2
+    web_crit = 6 * math.pi ** 2 * E / (12 * (1 - mu ** 2)) * (vertical_thickness / y_top) ** 2
+    shear_crit = 5 * math.pi ** 2 * E / (12 * (1 - mu ** 2)) * (((vertical_thickness / web_height) ** 2) + ((vertical_thickness / diaphragm_spacing) ** 2))
     return closed_flange_crit, open_flange_crit, web_crit, shear_crit
 
 
@@ -408,12 +407,13 @@ def design1():
     # 3: max shear force
     # 4: max glue shear force
     for i in stress_demand_max:
+        print(num)
+        print(i[0])
         plt.plot(range(1250), i)
         plt.ylabel(num)
         plt.show()
         num += 1
-        print(num)
-        print(i[0])
+
 
 
 def design2():
@@ -440,6 +440,7 @@ def design2():
     print("y top ratio")
     for i in range(len(dim[1])):
         print(dim[1][i] / dim[6][i])
+    plt.plot(range(1250), dim[1])
     print("calculating critical buckling stresses")
     buckling_crit = stress_buckling_crit_calc([10, 80 - 1.27 * 2, max(dim[1]), 500, 300])
     print(buckling_crit)
@@ -456,17 +457,81 @@ def design2():
         plt.show()
         num += 1
 
+    real_max = stress_demand_calc(dim, 30, min(6, min(buckling_crit[0], min(buckling_crit[1], buckling_crit[2]))), min(4, buckling_crit[3]))
+    num = 1
+    for i in real_max:
+        plt.plot(range(1250), i)
+        plt.ylabel(num)
+        plt.show()
+        num += 1
+
 def design3():
-    dim = single_cross_section_calc([[0, 0, 100, 1.27], [0, 1.27, 100, 1.27], [12.5 - 1.27/2, 1.27*2, 1.27, 200 - 1.27 * 2], [75 + 12.5 - 1.27/2, 1.27*2, 1.27, 200 - 1.27 * 2]], [1.27*2])
+    dim = total_cross_section_calc([[[0, 0, 100, 1.27 * 3], [15 - 1.27, 1.27*3, 1.27, 105], [85, 1.27*3, 1.27, 105], [15, 1.27*3, 10, 1.27], [75 - 1.27, 1.27*3, 10, 1.27]]], [1.27*3])
     print(dim)
     print("y_top ratio")
-    print(dim[1] / dim[6])
+    print(dim[1][0] / dim[6][0])
+    print("calculating critical buckling stresses")
+    buckling_crit = stress_buckling_crit_calc(15 - 1.27, 70, dim[1][0], 105, 140, horizontal_height=1.27*3)
+    print(buckling_crit)
+    stress_demand_max = stress_demand_calc(dim)
+    print(stress_demand_max)
+    real_max = stress_demand_calc(dim, 30, min(6, min(buckling_crit[0], min(buckling_crit[1], buckling_crit[2]))), min(4, buckling_crit[3]))
+    print(real_max)
+    print(real_max[0][0] / 568, real_max[1][0] / 568, real_max[2][0] / 1.774, real_max[3][0] / 1.774)
+    print(3.35 * min(real_max[0][0] / 568, min(real_max[1][0] / 568, min(real_max[2][0] / 1.774, real_max[3][0] / 1.774))))
 
+
+def design4():
+    geo = [[0, 0, 100, 1.27], [0, 1.27, 100, 1.27], [40, 5 + 1.27, 20, 1.27], [10, 1.27 * 2, 10, 1.27], [80, 1.27 * 2, 10, 1.27]]
+    for i in range(100):
+        geo.append([20 + i/5, 1.27 * 2 + i / 100 * (5 - 1.27), 1/5, 1.29162843758])
+        geo.append([80 - (i + 1)/5, 1.27 * 2 + i / 100 * (5 - 1.27), 1/5, 1.29162843758])
+    dim = total_cross_section_calc([geo], [1.27])
+    print(dim)
+    print("y_top ratio")
+    print(dim[1][0] / dim[6][0])
+    # print("calculating critical buckling stresses")
+    # buckling_crit = stress_buckling_crit_calc(20, 80 - 1.27, dim[1], 1.27*(3**0.5), 200)
+    stress_demand_max = stress_demand_calc(dim)
+    print(stress_demand_max)
+
+
+def design5():
+    dim = total_cross_section_calc([[[0, 0, 166, 1.27], [0, 1.27, 166, 1.27], [30 - 1.27, 1.27*2, 1.27, 100 - 1.27 * 2], [120, 1.27*2, 1.27, 100 - 1.27 * 2], [30, 1.27*2, 15, 1.27], [105, 1.27*2, 15, 1.27]]], [1.27*2, 1.27])
+    dim[7][0][1] = 2
+    print(dim)
+    print("y_top ratio")
+    print(dim[1][0] / dim[6][0])
+    print("calculating critical buckling stresses")
+    buckling_crit = stress_buckling_crit_calc(37.5 - 1.27, 75, dim[1][0], 100 - 1.27 * 2, 156.25, horizontal_height=1.27*2)
+    print(buckling_crit)
+    stress_demand_max = stress_demand_calc(dim)
+    print(stress_demand_max)
+    real_max = stress_demand_calc(dim, 30, min(6, min(buckling_crit[0], min(buckling_crit[1], buckling_crit[2]))), min(4, buckling_crit[3]))
+    print(real_max)
+    print(real_max[0][0] / 568, real_max[1][0] / 568, real_max[2][0] / 1.774, real_max[3][0] / 1.774, real_max[3][1] / 1.774)
+    print(3.35 * min(real_max[0][0] / 568, min(real_max[1][0] / 568, min(real_max[2][0] / 1.774, min(real_max[3][0] / 1.774, real_max[3][1] / 1.774)))))
+
+
+def design5p():
+    dim = total_cross_section_calc([[[-25, 0, 175, 1.27], [0, 1.27, 143, 1.27], [30 - 1.27, 1.27*2, 1.27, 100 - 1.27 * 2], [120, 1.27*2, 1.27, 100 - 1.27 * 2], [30, 1.27*2, 15, 1.27], [105, 1.27*2, 15, 1.27]]], [1.27*2, 1.27])
+    print(dim)
+    print("y_top ratio")
+    print(dim[1][0] / dim[6][0])
+    print("calculating critical buckling stresses")
+    buckling_crit = stress_buckling_crit_calc(37.5 - 1.27, 75, dim[1][0], 100 - 1.27 * 2, 150, horizontal_height=1.27*2)
+    print(buckling_crit)
+    stress_demand_max = stress_demand_calc(dim)
+    print(stress_demand_max)
+    real_max = stress_demand_calc(dim, 30, min(6, min(buckling_crit[0], min(buckling_crit[1], buckling_crit[2]))), min(4, buckling_crit[3]))
+    print(real_max)
+    print(real_max[0][0] / 568, real_max[1][0] / 568, real_max[2][0] / 1.774, real_max[3][0] / 1.774)
+    print(3.35 * min(real_max[0][0] / 568, min(real_max[1][0] / 568, min(real_max[2][0] / 1.774, real_max[3][0] / 1.774))))
 
 
 if __name__ == '__main__':
     # print("-----------------------------------")
     # geography()
     # print("-----------------------------------")
-    design1()
+    design5()
 
