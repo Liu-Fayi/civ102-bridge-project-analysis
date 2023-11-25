@@ -387,10 +387,36 @@ def stress_buckling_crit_calc(L):
     return closed_flange_crit, open_flange_crit, web_crit, shear_crit
 
 
-if __name__ == '__main__':
-    # print("-----------------------------------")
-    # geography()
-    # print("-----------------------------------")
+def design1():
+    L = [None] * 1250
+    print("defining shapes")
+    for l in range(1250):
+        L[l] = [[0, 0, 100, 1.27], [25, 1.27, 1.27, 200], [75 - 1.27, 1.27, 1.27, 200], [50 - 1.27 / 2, 1.27, 1.27, 150]]
+    print("calculating geometric properties")
+    dim = total_cross_section_calc(L, [1.27])
+    print("y top ratio")
+    for i in range(len(dim[1])):
+        print(dim[1][i] / dim[6][i])
+    print("calculating critical buckling stresses")
+    buckling_crit = stress_buckling_crit_calc([10, 80 - 1.27 * 2, max(dim[1]), 500, 300])
+    print(buckling_crit)
+    print("calculating stress demands")
+    stress_demand_max = stress_demand_calc(dim)
+    num = 1
+    # 1: max tensile moment
+    # 2: max compressive moment
+    # 3: max shear force
+    # 4: max glue shear force
+    for i in stress_demand_max:
+        plt.plot(range(1250), i)
+        plt.ylabel(num)
+        plt.show()
+        num += 1
+        print(num)
+        print(i[0])
+
+
+def design2():
     L = [None] * 1250
     print("defining shapes")
     for l in range(25):
@@ -411,14 +437,36 @@ if __name__ == '__main__':
         L[l] = [[0, 0, 100, 1.27], [10, 1.27, 1.27, 200], [90 - 1.27, 1.27, 1.27, 200]]
     print("calculating geometric properties")
     dim = total_cross_section_calc(L, [1.27])
+    print("y top ratio")
+    for i in range(len(dim[1])):
+        print(dim[1][i] / dim[6][i])
     print("calculating critical buckling stresses")
     buckling_crit = stress_buckling_crit_calc([10, 80 - 1.27 * 2, max(dim[1]), 500, 300])
     print(buckling_crit)
     print("calculating stress demands")
     stress_demand_max = stress_demand_calc(dim)
     num = 1
+    # 1: max tensile moment
+    # 2: max compressive moment
+    # 3: max shear force
+    # 4: max glue shear force
     for i in stress_demand_max:
         plt.plot(range(1250), i)
         plt.ylabel(num)
         plt.show()
         num += 1
+
+def design3():
+    dim = single_cross_section_calc([[0, 0, 100, 1.27], [0, 1.27, 100, 1.27], [12.5 - 1.27/2, 1.27*2, 1.27, 200 - 1.27 * 2], [75 + 12.5 - 1.27/2, 1.27*2, 1.27, 200 - 1.27 * 2]], [1.27*2])
+    print(dim)
+    print("y_top ratio")
+    print(dim[1] / dim[6])
+
+
+
+if __name__ == '__main__':
+    # print("-----------------------------------")
+    # geography()
+    # print("-----------------------------------")
+    design1()
+
