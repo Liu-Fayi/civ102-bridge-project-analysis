@@ -398,6 +398,10 @@ def design0():
     print(stress_demand_max)
     print(stress_demand_max[0][0] / 568, stress_demand_max[1][0] / 568, stress_demand_max[2][0] / 1.774, stress_demand_max[3][0] / 1.774)
     print(3.35 * min(stress_demand_max[0][0] / 568, min(stress_demand_max[1][0] / 568, min(stress_demand_max[2][0] / 1.774, stress_demand_max[3][0] / 1.774))))
+    print("FOS")
+    print("axial tension:", stress_demand_max[0][0]/69792.5)
+    print("axial compression:", stress_demand_max[1][0]/69792.5)
+    print("shear:", min(stress_demand_max[2][0]/258.285, stress_demand_max[3][0]/258.285))
 
 def design1():
     L = [None] * 1250
