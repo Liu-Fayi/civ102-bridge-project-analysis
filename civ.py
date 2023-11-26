@@ -386,6 +386,19 @@ def stress_buckling_crit_calc(open_flange_width, closed_flange_width, y_top, web
     return closed_flange_crit, open_flange_crit, web_crit, shear_crit
 
 
+def design0():
+    dim = total_cross_section_calc([[[0, 0, 100, 1.27], [10, 1.27, 1.27, 75], [90 - 1.27, 1.27, 1.27, 75], [10 + 1.27, 75, 80 - 2 * 1.27, 1.27], [10 + 1.27, 1.27, 5, 1.27], [85 - 1.27, 1.27, 5, 1.27]]], [1.27])
+    print(dim)
+    print("y_top ratio")
+    print(dim[1][0] / dim[6][0])
+    print("calculating critical buckling stresses")
+    buckling_crit = stress_buckling_crit_calc(10, 70 - 1.27 * 2, dim[1][0], 75, 400)
+    print(buckling_crit)
+    stress_demand_max = stress_demand_calc(dim, 30, min(6, min(buckling_crit[0], min(buckling_crit[1], buckling_crit[2]))), min(4, buckling_crit[3]))
+    print(stress_demand_max)
+    print(stress_demand_max[0][0] / 568, stress_demand_max[1][0] / 568, stress_demand_max[2][0] / 1.774, stress_demand_max[3][0] / 1.774)
+    print(3.35 * min(stress_demand_max[0][0] / 568, min(stress_demand_max[1][0] / 568, min(stress_demand_max[2][0] / 1.774, stress_demand_max[3][0] / 1.774))))
+
 def design1():
     L = [None] * 1250
     print("defining shapes")
@@ -533,5 +546,5 @@ if __name__ == '__main__':
     # print("-----------------------------------")
     # geography()
     # print("-----------------------------------")
-    design5()
+    design0()
 
