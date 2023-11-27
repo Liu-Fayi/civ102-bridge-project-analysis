@@ -291,38 +291,39 @@ def section_properties_left():
 
 
 def single_cross_section_calc(L, G_heights_top):
-    '''input: L is a list of lists of all rectangular cross-section members (which varies over the
+    """input: L is a list of lists of all rectangular cross-section members (which varies over the
             length of the bridge) of the bridge
             the inner lists describe each member as [x, y, width, height]
-            x and y are the coordinates of the top left corner of the rectangle (all in mm)'''
+            x and y are the coordinates of the top left corner of the rectangle (all in mm)"""
 
-    y_bar = 0
-    I = 0
-    y_top = 0
-    Q_cent = 0
-    Q_glue = [0] * len(G_heights_top)
-    b_glue = [0] * len(G_heights_top)
+    y_bar = 0  # y_bar is the centroid height of the cross-section
+    I = 0  # I is the second moment of area of the cross-section
+    y_top = 0  # y_top is the distance from the centroid to the top of the cross-section
+    Q_cent = 0  # Q_cent is the first moment of area of the cross-section at centroid height
+    Q_glue = [0] * len(G_heights_top)  # Q_glue is the first moment of area of the cross-section at glue height
+    b_glue = [0] * len(G_heights_top)  # b_glue is the width of the cross-section at glue height
     b_glue_top = [0] * len(G_heights_top)
     b_glue_bot = [0] * len(G_heights_top)
-    b_cent = 0
-    ovheight = 0
+    b_cent = 0  # b_cent is the width of the cross-section at centroid height
+    ovheight = 0  # ovheight is the overall height of the cross-section
     for member in L:
         if member[1] + member[3] > ovheight:
-            ovheight = member[1] + member[3]  # ovheight is the overall height of the cross-section
-    A = 0
-    hA = 0
-    for member in L:
-        A += member[2] * member[3]  # A is the total cross-sectional area (used to calculate y_bar)
-        hA += member[2] * member[3] * (ovheight - (member[1] + member[3] / 2))  # hA is the sum of the areas times
-        # the distance from the centroid of each area to the bottom of the cross-section (used to calculate y_bar)
-    y_bar = hA / A  # y_bar is the centroid height of the cross-section
-    y_top = ovheight - y_bar  # y_top is the distance from the centroid to the top of the cross-section
+            ovheight = member[1] + member[3]  # calculating the overall height of the cross-section
+    A = 0  # A is the total cross-sectional area (used to calculate y_bar)
+    hA = 0  # hA is the sum of the areas times the distance from the centroid of each area to the bottom of the
+    # cross-section (used to calculate y_bar)
+    for member in L:  # centroid height calculations
+        A += member[2] * member[3]
+        hA += member[2] * member[3] * (ovheight - (member[1] + member[3] / 2))
+    y_bar = hA / A
+    y_top = ovheight - y_bar
 
     for member in L:
         I += member[2] * member[3] ** 3 / 12 + member[2] * member[3] * (
-                ovheight - (member[1] + member[3] / 2) - y_bar) ** 2
+                ovheight - (member[1] + member[3] / 2) - y_bar) ** 2  # second moment of area calculations (parallel
+        # axis theorem)
 
-        if member[1] + member[3] < y_top:
+        if member[1] + member[3] < y_top:  # first moment of area calculations
             Q_cent += member[2] * member[3] * (y_top - member[1] + member[3] / 2)
         elif member[1] < y_top:
             Q_cent += member[2] * (y_top - member[1]) * ((y_top - member[1]) / 2)
@@ -345,10 +346,10 @@ def single_cross_section_calc(L, G_heights_top):
 
 
 def total_cross_section_calc(L, G_heights_top):
-    '''input: L is a list of lists of all cross_section list of rectangular cross-section members
+    """input: L is a list of lists of all cross_section list of rectangular cross-section members
             (which varies over the length of the bridge) of the bridge
             the inner lists describe each member as [x, y, width, height]
-            x and y are the coordinates of the top left corner of the rectangle (all in mm)'''
+            x and y are the coordinates of the top left corner of the rectangle (all in mm)"""
     I = [0] * len(L)
     y_bar = [0] * len(L)
     y_top = [0] * len(L)
@@ -357,35 +358,43 @@ def total_cross_section_calc(L, G_heights_top):
     b_cent = [0] * len(L)
     ovheight = [0] * len(L)
     b_glue = [None] * len(L)
-    for i in range(len(L)):
+    for i in range(len(L)):  # calculating cross-section properties for each cross-section using
+        # single_cross_section_calc
         y_bar[i], y_top[i], I[i], Q_cent[i], Q_glue[i], b_cent[i], ovheight[i], b_glue[i] = single_cross_section_calc(
             L[i], G_heights_top)
     return y_bar, y_top, I, Q_cent, Q_glue, b_cent, ovheight, b_glue
 
 
 def stress_demand_calc(L, s_t=30, s_c=6, t=4):
-    '''input: L is a list of lists of all cross_section properties as outputed by total_cross_section_calc'''
-    M_t_allow = [0] * len(L[0])
-    M_c_allow = [0] * len(L[0])
-    V_allow = [0] * len(L[0])
-    V_glue_allow = []
+    """input: L is a list of lists of all cross_section properties as outputed by total_cross_section_calc"""
+    M_t_allow = [0] * len(L[0])  # M_t_allow is the allowable moment for tension side of each cross-section
+    M_c_allow = [0] * len(L[0])  # M_c_allow is the allowable moment for compression side of each cross-section
+    V_allow = [0] * len(L[0])  # V_allow is the allowable shear force for each cross-section
+    V_glue_allow = []  # V_glue_allow is a list of allowable shear force for each glue tab
     for i in range(len(L[0])):
-        M_t_allow[i] = s_t * L[2][i] / L[0][i]
-        M_c_allow[i] = s_c * L[2][i] / L[1][i]
-        V_allow[i] = t * L[2][i] * L[5][i] / L[3][i]
+        M_t_allow[i] = s_t * L[2][i] / L[0][i]  # calculating allowable moment for tension side of each cross-section
+        # (Navier's equation)
+        M_c_allow[i] = s_c * L[2][i] / L[1][i]  # calculating allowable moment for compression side of each
+        # cross-section (Navier's equation)
+        V_allow[i] = t * L[2][i] * L[5][i] / L[3][i]  # calculating allowable shear force for each cross-section
+        # (tau = VQ/Ib)
         for j in range(len(L[4][i])):
-            V_glue_allow.append(2 * L[2][i] * L[7][i][j] / L[4][i][j])
+            V_glue_allow.append(2 * L[2][i] * L[7][i][j] / L[4][i][j])  # calculating allowable shear force for each
+            # glue tab (tau = VQ/Ib)
 
     return M_t_allow, M_c_allow, V_allow, V_glue_allow
 
 
 def stress_buckling_crit_calc(open_flange_width, closed_flange_width, y_top, web_height, diaphragm_spacing,
                               horizontal_height=1.27, vertical_thickness=1.27):
+    """return the critical buckling stresses for each thin plate buckling cases"""
     closed_flange_crit = 4 * math.pi ** 2 * E / (12 * (1 - mu ** 2)) * (horizontal_height / closed_flange_width) ** 2
+    # case 1
     open_flange_crit = 0.425 * math.pi ** 2 * E / (12 * (1 - mu ** 2)) * (horizontal_height / open_flange_width) ** 2
-    web_crit = 6 * math.pi ** 2 * E / (12 * (1 - mu ** 2)) * (vertical_thickness / y_top) ** 2
+    # case 2
+    web_crit = 6 * math.pi ** 2 * E / (12 * (1 - mu ** 2)) * (vertical_thickness / y_top) ** 2  # case 3
     shear_crit = 5 * math.pi ** 2 * E / (12 * (1 - mu ** 2)) * (
-            ((vertical_thickness / web_height) ** 2) + ((vertical_thickness / diaphragm_spacing) ** 2))
+            ((vertical_thickness / web_height) ** 2) + ((vertical_thickness / diaphragm_spacing) ** 2))  # case 4
     return closed_flange_crit, open_flange_crit, web_crit, shear_crit
 
 
@@ -416,7 +425,7 @@ def design0():
 
 def design1():
     L = [[[0, 0, 100, 1.27], [25, 1.27, 1.27, 200], [75 - 1.27, 1.27, 1.27, 200],
-                [50 - 1.27 / 2, 1.27, 1.27, 150]]]
+          [50 - 1.27 / 2, 1.27, 1.27, 150]]]
     print("defining shapes")
     print("calculating geometric properties")
     dim = total_cross_section_calc(L, [1.27])
@@ -441,10 +450,12 @@ def design1():
     #     plt.ylabel(num)
     #     plt.show()
     #     num += 1
-    real_max = stress_demand_calc(dim, 30, min(6, min(buckling_crit[0], min(buckling_crit[1], buckling_crit[2]))), min(4, buckling_crit[3]))
+    real_max = stress_demand_calc(dim, 30, min(6, min(buckling_crit[0], min(buckling_crit[1], buckling_crit[2]))),
+                                  min(4, buckling_crit[3]))
     print(real_max)
     print(real_max[0][0] / 568, real_max[1][0] / 568, real_max[2][0] / 1.774, real_max[3][0] / 1.774)
-    print(3.35 * min(real_max[0][0] / 568, min(real_max[1][0] / 568, min(real_max[2][0] / 1.774, real_max[3][0] / 1.774))))
+    print(3.35 * min(real_max[0][0] / 568,
+                     min(real_max[1][0] / 568, min(real_max[2][0] / 1.774, real_max[3][0] / 1.774))))
 
 
 def design2():
@@ -535,7 +546,8 @@ def design4():
 
 def design5():
     dim = total_cross_section_calc([[[0, 0, 166, 1.27], [0, 1.27, 166, 1.27],
-                                     [37.5 - 1.27, 1.27 * 2, 1.27, 100 - 1.27 * 2], [112.5, 1.27 * 2, 1.27, 100 - 1.27 * 2],
+                                     [37.5 - 1.27, 1.27 * 2, 1.27, 100 - 1.27 * 2],
+                                     [112.5, 1.27 * 2, 1.27, 100 - 1.27 * 2],
                                      [30, 1.27 * 2, 15, 1.27], [105, 1.27 * 2, 15, 1.27]]], [1.27 * 2, 1.27])
     dim[7][0][1] = 2
     print(dim)
