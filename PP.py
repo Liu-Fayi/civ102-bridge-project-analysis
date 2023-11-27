@@ -2,178 +2,113 @@ from copy import deepcopy
 import numpy as np
 
 class PiecewisePolynomial():
-    def __init__(self, keypoints, pieces):
-        self.num_pieces = len(keypoints) - 1
-        self.keypoints = deepcopy(sorted(keypoints))
-        self.pieces = deepcopy(pieces)
+    def __init__(self, breakpoints, segment_coeffs):
+        # Constructor: Initializes a PiecewisePolynomial object.
+        # 'breakpoints' are the points at which the polynomial segments meet.
+        # 'segment_coeffs' are the coefficients of the polynomial segments.
+        self.segment_count = len(breakpoints) - 1  # Total number of polynomial segments.
+        self.breakpoints = deepcopy(sorted(breakpoints))  # Sort and store breakpoints.
+        self.segment_coeffs = deepcopy(segment_coeffs)  # Store the polynomial coefficients.
 
     def __len__(self):
-        return self.num_pieces
+        # Magic method to return the number of polynomial segments.
+        return self.segment_count
 
     @staticmethod
-    def _eval_piece(coefficients, x):
-        return np.polyval(coefficients[::-1], x)
+    def _compute_value(coefficients, point):
+        # Computes the value of a single polynomial segment at a given point using numpy's polyval.
+        # 'coefficients' are reversed because numpy expects them in descending order.
+        return np.polyval(coefficients[::-1], point)
 
-    def _find_interval(self, x):
-        low, high = 0, len(self.keypoints) - 2  # Adjust the upper bound to len(keypoints) - 2
-        while low <= high:
-            mid = (low + high) // 2
-            if self.keypoints[mid] <= x < self.keypoints[mid + 1]:
-                return mid  # Return the index of the interval
-            elif x < self.keypoints[mid]:
-                high = mid - 1
+    def _locate_segment(self, point):
+        # Locates which segment the value point belongs to among the breakpoints.
+        # Implements a binary search algorithm for efficiency.
+        lower_bound, upper_bound = 0, len(self.breakpoints) - 2  # Setting search bounds.
+        while lower_bound <= upper_bound:
+            midpoint = (lower_bound + upper_bound) // 2
+            if self.breakpoints[midpoint] <= point < self.breakpoints[midpoint + 1]:
+                return midpoint
+            elif point < self.breakpoints[midpoint]:
+                upper_bound = midpoint - 1
             else:
-                low = mid + 1
-        return -1  # Indicate that the value is not within any interval
+                lower_bound = midpoint + 1
+        return -1  # If point is not in any segment, return -1.
 
-
-    def eval(self, x):
-        index = self._find_interval(x)
-        if index is not None:
-            return self._eval_piece(self.pieces[index], x)
+    def compute(self, point):
+        # Computes the PiecewisePolynomial at a given point.
+        segment_idx = self._locate_segment(point)
+        if segment_idx is not None:
+            return self._compute_value(self.segment_coeffs[segment_idx], point)
         return None
 
-    def evals(self, x_variables):
-        return np.array([self.eval(x) for x in x_variables])
+    def compute_all(self, points):
+        # Computes the PiecewisePolynomial for a list of points.
+        return np.array([self.compute(point) for point in points])
     
-    def get_plot_points(self, num_splits = 1000):
-        """Generate a list of points for plotting the piecewise polynomial."""
-        total_length = self.keypoints[-1] - self.keypoints[0]
-        xs, ys = [], []
+    def plot_data(self, num_points=1000):
+        # Generates x and y points for plotting the PiecewisePolynomial.
+        total_range = self.breakpoints[-1] - self.breakpoints[0]
+        x_vals, y_vals = [], []
 
         for i in range(len(self)):
-            x1, x2 = self.keypoints[i], self.keypoints[i+1]
-            interval_length = x2 - x1
-            n_dif = int(np.round(num_splits * (interval_length / total_length)))
+            # Iterating over each polynomial segment.
+            start, end = self.breakpoints[i], self.breakpoints[i+1]
+            segment_range = end - start
+            num_segment_points = int(np.round(num_points * (segment_range / total_range)))
 
-            # Generate x-values for this piece
-            # Make sure the end point is included 
-            x_values = np.linspace(x1, x2, n_dif, endpoint=(i == len(self) - 1))
-            xs.extend(x_values)
+            # Generate x-values and compute the segment value at these points.
+            x_segment_vals = np.linspace(start, end, num_segment_points, endpoint=(i == len(self) - 1))
+            x_vals.extend(x_segment_vals)
+            y_vals.extend([self._compute_value(self.segment_coeffs[i], x) for x in x_segment_vals])
 
-            # Evaluate the polynomial piece at each x-value
-            ys.extend([self._eval_piece(self.pieces[i], x) for x in x_values])
-
-        return np.array(xs), np.array(ys)
+        return np.array(x_vals), np.array(y_vals)
     
-    def integrate(self) -> 'PiecewisePolynomial':
-        """zero vertical displacement at left endpoint"""
-        poly = PiecewisePolynomial(self.keypoints, self.pieces)
-        sum_y = 0
+    def integrate_segments(self) -> 'PiecewisePolynomial':
+        # Integrates the PiecewisePolynomial. This is done by integrating each segment.
+        integrated_poly = PiecewisePolynomial(self.breakpoints, self.segment_coeffs)
+        accumulated_y = 0
         for i in range(len(self)):
-            x1, x2 = self.keypoints[i], self.keypoints[i+1]
-            piece = [0.0] + self.pieces[i]
-            for k in range(1, len(piece)):
-                piece[k] /= k
-            y1 = self._eval_piece(piece, x1)
-            y2 = self._eval_piece(piece, x2)
-            piece[0] = sum_y - y1
-            sum_y += y2 - y1
-            poly.pieces[i] = piece
-        return poly
+            start, end = self.breakpoints[i], self.breakpoints[i+1]
+            integrated_segment = [0.0] + self.segment_coeffs[i]
+            for k in range(1, len(integrated_segment)):
+                integrated_segment[k] /= k
+            y_start = self._compute_value(integrated_segment, start)
+            y_end = self._compute_value(integrated_segment, end)
+            integrated_segment[0] = accumulated_y - y_start
+            accumulated_y += y_end - y_start
+            integrated_poly.segment_coeffs[i] = integrated_segment
+        return integrated_poly
     
     @staticmethod
-    def _piece_optim(piece, x1, x2):
-        """Find optimal x values (local extrema) within a given interval for a polynomial piece."""
-        if len(piece) <= 1:
-            return []  # No extrema possible for a constant or empty polynomial
+    def _find_extrema(segment, start, end):
+        # Finds local extrema within an interval for a polynomial segment.
+        if len(segment) <= 1:
+            return []  # No extrema possible for a constant or empty polynomial.
 
-        # Compute the derivative of the polynomial
-        derivative = [k * coeff for k, coeff in enumerate(piece)][1:]
-
-        # Find roots of the derivative
+        # Compute the derivative of the polynomial to find critical points.
+        derivative = [k * coeff for k, coeff in enumerate(segment)][1:]
         roots = np.roots(derivative)
+        return [x.real for x in roots if x.imag == 0 and start < x.real < end]
 
-        # Filter to include only real roots within the interval [x1, x2]
-        return [x.real for x in roots if x.imag == 0 and x1 < x.real < x2]
-
-    def get_keypoints(self):
-        """Get all keypoints including interval endpoints and local extrema."""
-        all_keypoints = set()
-
+    def get_breakpoints(self):
+        # Gets all breakpoints including interval endpoints and local extrema.
+        all_breakpoints = set()
         for i in range(len(self)):
-            x1, x2 = self.keypoints[i], self.keypoints[i + 1]
-            
-            # Add interval endpoints
-            all_keypoints.update([x1, x2])
-
-            # Find and add extreme value within the interval
-            extreme_val = self._piece_optim(self.pieces[i], x1, x2)
-            all_keypoints.update(extreme_val)
-        return sorted(all_keypoints)
+            start, end = self.breakpoints[i], self.breakpoints[i + 1]
+            all_breakpoints.update([start, end])
+            extremum = self._find_extrema(self.segment_coeffs[i], start, end)
+            all_breakpoints.update(extremum)
+        return sorted(all_breakpoints)
     
-    
-    def get_optim(self, absolute=False):
-        """Find the global minimum and maximum points of the piecewise polynomial."""
-        keypoints = self.get_keypoints()
-        evaluated_points = [(x, self._eval_piece(self.pieces[self._find_interval(x)], x)) for x in keypoints]
+    def extreme_value(self, absolute=False):
+        # Finds the global minimum and maximum points of the PiecewisePolynomial.
+        breakpoints = self.get_breakpoints()
+        evaluated_points = [(point, self._compute_value(self.segment_coeffs[self._locate_segment(point)], point)) for point in breakpoints]
 
         if absolute:
-            # Find the point with the maximum absolute value
             max_point = max(evaluated_points, key=lambda item: abs(item[1]))
             return max_point
 
-        # Find the global minimum and maximum
         min_point = min(evaluated_points, key=lambda item: item[1])
         max_point = max(evaluated_points, key=lambda item: item[1])
-
         return min_point, max_point
-    
-    def mul(self, c) -> 'PiecewisePolynomial':
-        """multiply by a constant"""
-        poly = PiecewisePolynomial(self.keypoints, self.pieces)
-        for i in range(len(poly.pieces)):
-            piece = self.pieces[i][:]
-            for k in range(len(piece)):
-                piece[k] *= c
-            poly.pieces[i] = piece
-        return poly
-
-    @staticmethod
-    def _sub_piece(piece1, piece2):
-        res = [0] * max(len(piece1), len(piece2))
-        for i in range(len(piece1)):
-            res[i] += piece1[i]
-        for i in range(len(piece2)):
-            res[i] -= piece2[i]
-        return res
-    
-    def sub(self, piece) -> 'PiecewisePolynomial':
-        """Subtract a polynomial from each piece of the piecewise polynomial."""
-        new_pieces = [self._sub_piece(p, piece) for p in self.pieces]
-        return PiecewisePolynomial(self.keypoints, new_pieces)
-    
-    def _mul_piece(p, q):
-        """Multiply two polynomials."""
-        result = [0] * (len(p) + len(q) - 1)
-        for i, coeff_p in enumerate(p):
-            for j, coeff_q in enumerate(q):
-                result[i + j] += coeff_p * coeff_q
-        return 
-
-    def polymul(self, that) -> 'PiecewisePolynomial':
-        """Multiply two piecewise polynomials."""
-        # Combine and sort the unique keypoints from both polynomials
-        combined_keypoints = sorted(set(self.keypoints + that.keypoints))
-
-        new_pieces = []
-        for i in range(len(combined_keypoints) - 1):
-            # Find the current interval
-            interval_start, interval_end = combined_keypoints[i], combined_keypoints[i + 1]
-
-            # Find corresponding pieces for the current interval in both polynomials
-            piece_this = self._get_piece_at(self, interval_start)
-            piece_that = self._get_piece_at(that, interval_start)
-
-            # Multiply the pieces and add to the new pieces
-            new_pieces.append(self._mul_piece(piece_this, piece_that))
-
-        return PiecewisePolynomial(combined_keypoints, new_pieces)
-
-    @staticmethod
-    def _get_piece_at(poly, x):
-        """Get the polynomial piece applicable at the given x in the piecewise polynomial."""
-        for i in range(len(poly.keypoints) - 1):
-            if poly.keypoints[i] <= x < poly.keypoints[i + 1]:
-                return poly.pieces[i]
-        return [0]  # Return a zero polynomial if x is outside the range
