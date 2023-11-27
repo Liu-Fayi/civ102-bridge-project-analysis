@@ -415,33 +415,36 @@ def design0():
 
 
 def design1():
-    L = [None] * 1250
+    L = [[[0, 0, 100, 1.27], [25, 1.27, 1.27, 200], [75 - 1.27, 1.27, 1.27, 200],
+                [50 - 1.27 / 2, 1.27, 1.27, 150]]]
     print("defining shapes")
-    for l in range(1250):
-        L[l] = [[0, 0, 100, 1.27], [25, 1.27, 1.27, 200], [75 - 1.27, 1.27, 1.27, 200],
-                [50 - 1.27 / 2, 1.27, 1.27, 150]]
     print("calculating geometric properties")
     dim = total_cross_section_calc(L, [1.27])
+    print(dim)
     print("y top ratio")
-    for i in range(len(dim[1])):
-        print(dim[1][i] / dim[6][i])
+    print(dim[1][0] / dim[6][0])
     print("calculating critical buckling stresses")
-    buckling_crit = stress_buckling_crit_calc([10, 80 - 1.27 * 2, max(dim[1]), 500, 300])
+    buckling_crit = stress_buckling_crit_calc(10, 80 - 1.27 * 2, max(dim[1]), 500, 300)
     print(buckling_crit)
     print("calculating stress demands")
     stress_demand_max = stress_demand_calc(dim)
-    num = 1
-    # 1: max tensile moment
-    # 2: max compressive moment
-    # 3: max shear force
-    # 4: max glue shear force
-    for i in stress_demand_max:
-        print(num)
-        print(i[0])
-        plt.plot(range(1250), i)
-        plt.ylabel(num)
-        plt.show()
-        num += 1
+    print(stress_demand_max)
+    # num = 1
+    # # 1: max tensile moment
+    # # 2: max compressive moment
+    # # 3: max shear force
+    # # 4: max glue shear force
+    # for i in stress_demand_max:
+    #     print(num)
+    #     print(i[0])
+    #     plt.plot(range(1250), i)
+    #     plt.ylabel(num)
+    #     plt.show()
+    #     num += 1
+    real_max = stress_demand_calc(dim, 30, min(6, min(buckling_crit[0], min(buckling_crit[1], buckling_crit[2]))), min(4, buckling_crit[3]))
+    print(real_max)
+    print(real_max[0][0] / 568, real_max[1][0] / 568, real_max[2][0] / 1.774, real_max[3][0] / 1.774)
+    print(3.35 * min(real_max[0][0] / 568, min(real_max[1][0] / 568, min(real_max[2][0] / 1.774, real_max[3][0] / 1.774))))
 
 
 def design2():
@@ -532,7 +535,7 @@ def design4():
 
 def design5():
     dim = total_cross_section_calc([[[0, 0, 166, 1.27], [0, 1.27, 166, 1.27],
-                                     [30 - 1.27, 1.27 * 2, 1.27, 100 - 1.27 * 2], [120, 1.27 * 2, 1.27, 100 - 1.27 * 2],
+                                     [37.5 - 1.27, 1.27 * 2, 1.27, 100 - 1.27 * 2], [112.5, 1.27 * 2, 1.27, 100 - 1.27 * 2],
                                      [30, 1.27 * 2, 15, 1.27], [105, 1.27 * 2, 15, 1.27]]], [1.27 * 2, 1.27])
     dim[7][0][1] = 2
     print(dim)
@@ -601,9 +604,11 @@ def design5p():
 
 
 if __name__ == '__main__':
+    # design5()
     # print("-----------------------------------")
-    # geography()
-    # print("-----------------------------------")
-    design5()
+    # design5_splice()
+    design0()
     print("-----------------------------------")
-    design5_splice()
+    design1()
+    print("-----------------------------------")
+    design5()
