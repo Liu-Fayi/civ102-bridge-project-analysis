@@ -26,7 +26,6 @@ def solve_beam(x1, x2, p1, p2, point_loads):
     f2 = -moment_about_p1 / (p2 - p1)
     f1 = -total_vert - f2
     print(f"Reaction force at support at 25m: {f1} Reaction force at support at 1225m: {f2}")
-    
     # Key points
     keypoints_dict = {p1: [f1, 0], p2: [f2, 0]}
     for x, f in point_loads:
@@ -46,16 +45,15 @@ def solve_beam(x1, x2, p1, p2, point_loads):
     sfd = PiecewisePolynomial(poly_keypoints, poly_pieces)
     bmd = sfd.integrate_segments()
     xs = np.linspace(x1 + 1e-12, x2 - 1e-12, int(x2 - x1) + 1)
+    max_shear = np.amax(np.abs(sfd.compute_all(xs)))
+    max_bending = np.amax(bmd.compute_all(xs))
+    print(f"Max shear: {max_shear}N Max bending moment: {max_bending} N⋅mm")
     return (
         (xs, max(f1, f2)),
         (xs, np.abs(sfd.compute_all(xs))),
         (xs, bmd.compute_all(xs))
     )
     
-
-
-
-
 
 def get_beam_responses(train_position, train_load):
     # Define joint positions on the train
@@ -97,6 +95,7 @@ def plot_beam_envelope(load, plot=True):
                 max_bending_pos = pos
 
     # Plot the results if requested
+    
     if plot:
         fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(6, 4))
         ax1.set_title("Max Shear (N)")
@@ -109,19 +108,22 @@ def plot_beam_envelope(load, plot=True):
         plt.show()
 
     # Print the maximum values
-    print("Max reaction", max(reactions_vals))
+    print("Max reaction", max(reactions_vals), "at train_x =", reactions_xs[reactions_vals.index(max(reactions_vals))])
     print("Max shear", np.amax(max_shear), "N", "at train_x =", max_shear_pos, "at x =", shear_x[np.argmax(max_shear)])
     print("Max bmx", np.amax(max_bending), "N⋅mm", "at train_x =", max_bending_pos, "at x =", bending_x[np.argmax(max_bending)])
 
-def only_max(length, load):
+def only_max(case, load):
     # Define positions for maximum shear and bending
-    max_shear_x, max_bending_x = -26.0, 207.0 if length == 1250 else (0, 0)
 
+    if case == 1:
+        max_shear_x, max_bending_x = -26.0, 207.0 
     # Get responses for maximum shear and bending
+    
     (_, _), (_, max_shear), (_) = get_beam_responses(max_shear_x, load)
     (_, _), (_, _), (_, max_bending) = get_beam_responses(max_bending_x, load)
 
     # Print the maximum shear and bending values
+    print(np.amax())
     print(np.amax(max_shear))
     print(np.amax(max_bending))
 
@@ -133,6 +135,8 @@ if __name__ == "__main__":
     # Define the load on the train
     # Execute the only_max function with specified beam length and load
     front_car = 400.0
-    load_case = [90, 90, 90/1.35, 90/1.35, 90/1.35, 90/1.35]
-    load_case = [front_car/6, front_car/6, front_car/6, front_car/6, front_car/6, front_car/6]
-    plot_beam_envelope(load_case)
+    load_case2 = [90, 90, 90/1.35, 90/1.35, 90/1.35, 90/1.35]
+    load_case1 = [front_car/6, front_car/6, front_car/6, front_car/6, front_car/6, front_car/6]
+    plot_beam_envelope(load_case1)
+    plot_beam_envelope(load_case2)
+

@@ -558,23 +558,28 @@ def design5(): # final analysis
                                      [112.5, 1.27 * 2, 1.27, 100 - 1.27 * 2],
                                      [30, 1.27 * 2, 15, 1.27], [105, 1.27 * 2, 15, 1.27]]], [1.27 * 2, 1.27])
     dim[7][0][1] = 2
-    print(dim)
-    print("y_top ratio")
-    print(dim[1][0] / dim[6][0])
-    print("calculating critical buckling stresses")
+    # print(dim)
+    # print("y_top ratio")
+    # print(dim[1][0] / dim[6][0])
+    # print("calculating critical buckling stresses")
     buckling_crit = stress_buckling_crit_calc(37.5 - 1.27, 75, dim[1][0], 100 - 1.27 * 2, 156.25,
                                               horizontal_height=1.27 * 2)
-    print(buckling_crit)
+    # print(buckling_crit)
     stress_demand_max = stress_demand_calc(dim)
-    print(stress_demand_max)
+    # print(stress_demand_max)
     real_max = stress_demand_calc(dim, 30, min(6, min(buckling_crit[0], min(buckling_crit[1], buckling_crit[2]))),
                                   min(4, buckling_crit[3]))
-    print(real_max)
-    print(real_max[0][0] / 568, real_max[1][0] / 568, real_max[2][0] / 1.774, real_max[3][0] / 1.774,
-          real_max[3][1] / 1.774)
-    print(3.35 * min(real_max[0][0] / 568, min(real_max[1][0] / 568, min(real_max[2][0] / 1.774,
-                                                                         min(real_max[3][0] / 1.774,
-                                                                             real_max[3][1] / 1.774)))))
+    print("bending moment capability: ", min(real_max[0][0], real_max[1][0]), "N*mm, (constant across span)")
+    print("shear force capability: ", min(real_max[2][0], real_max[3][0]), "N, (constant across span)")
+    print("FOS")
+    print("axial tension:", real_max[0][0] / 77176.24444444443)
+    print("axial compression:", real_max[1][0] / 77176.24444444443)
+    print("shear:", min(real_max[2][0] / 258.285, real_max[3][0] / 300.2055555555555))
+    # print(real_max[0][0] / 568, real_max[1][0] / 568, real_max[2][0] / 1.774, real_max[3][0] / 1.774,
+    #       real_max[3][1] / 1.774)
+    # print(3.35 * min(real_max[0][0] / 568, min(real_max[1][0] / 568, min(real_max[2][0] / 1.774,
+    #                                                                      min(real_max[3][0] / 1.774,
+    #                                                                          real_max[3][1] / 1.774)))))
 
 
 def design5_splice(): # final analysis at joint
@@ -627,10 +632,10 @@ if __name__ == '__main__':
     # design5()
     # print("-----------------------------------")
     # design5_splice()
-    design0()
+    # design0()
     # print("-----------------------------------")
     # design1()
     # print("-----------------------------------")
-    # design5()
+    design5()
     # print("-----------------------------------")
     # design4()
