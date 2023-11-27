@@ -531,6 +531,8 @@ def design4():
     # buckling_crit = stress_buckling_crit_calc(20, 80 - 1.27, dim[1], 1.27*(3**0.5), 200)
     stress_demand_max = stress_demand_calc(dim)
     print(stress_demand_max)
+    print(stress_demand_max[0][0] / 568, stress_demand_max[1][0] / 568, stress_demand_max[2][0] / 1.774, stress_demand_max[3][0] / 1.774)
+    print(3.35 * min(stress_demand_max[0][0] / 568, min(stress_demand_max[1][0] / 568, min(stress_demand_max[2][0] / 1.774, stress_demand_max[3][0] / 1.774))))
 
 
 def design5():
@@ -612,3 +614,5 @@ if __name__ == '__main__':
     design1()
     print("-----------------------------------")
     design5()
+    print("-----------------------------------")
+    design4()
